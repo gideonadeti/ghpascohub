@@ -58,6 +58,8 @@ const ANY_VALUE = "__any__";
 
 // Only filter *keys* are ever tracked — never filter values.
 const APPLIED_FILTER_KEYS = [
+  "institutionId",
+  "programId",
   "courseId",
   "academicYear",
   "educationLevel",
