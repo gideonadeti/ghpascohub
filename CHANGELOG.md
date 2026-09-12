@@ -6,12 +6,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-12
+
 ### Added
 
-- Personalized school filter: users who set their school in settings now see only their school's pascos on browse by default, with a one-click "View all schools" opt-out and "Show only my school" restore (`User.institutionId` FK, backfilled from matching school names)
-- Optional program preference in settings (cascading institution → program picker, `User.programId` FK): browse shows a one-click "Filter to my program" suggestion but never auto-applies it
-- Pasco detail breadcrumbs for institution, selected program, and course, with catalog crumbs linking directly to filtered pasco browse results
-- Institution and program scopes in pasco browse URLs and API filtering
+- Signed-in `/settings` page: profile info, optional school picker (catalog institution combobox + free-text fallback), and contributor upgrade card ([#26](https://github.com/weamp-org/unipascohub/pull/26))
+- Personalized school filter: users with a linked school see only their school's pascos on browse by default, with one-click "View all schools" opt-out and "Show only my school" restore; optional program preference surfaces a one-click "Filter to my program" suggestion without auto-applying it (`User.institutionId`/`programId` FKs, school names backfilled case-insensitively) ([#32](https://github.com/weamp-org/unipascohub/pull/32))
+- Shared courses across programs: courses are institution-wide with `programIds` always returned; upload form fetches all institution courses (linked-first sort) and auto-links on submit; same code under a new program links instead of `409 duplicate_live_course` ([#28](https://github.com/weamp-org/unipascohub/pull/28))
+- Admin catalog at `/admin/catalog`: search/filter courses, edit code/title/program links, delete with linked-pasco guard ([#28](https://github.com/weamp-org/unipascohub/pull/28))
+- Pasco detail breadcrumbs (Home / Browse / institution / program / course) with catalog crumbs linking directly to filtered browse results; `institutionId`/`programId` scopes in browse URLs and `GET /api/pascos` filtering ([#30](https://github.com/weamp-org/unipascohub/pull/30))
+- Admin tables with pagination: shadcn `Table` + `Pagination` primitives, server-side paging for users (20/page), client-side paging for catalog (20/page), reusable `ProgramCombobox` ([#31](https://github.com/weamp-org/unipascohub/pull/31))
+- Fullscreen immersive file preview on mobile (100dvh edge-to-edge dialog, safe-area insets, black lightbox for images, pinch-zoom PDFs); desktop modal unchanged ([#33](https://github.com/weamp-org/unipascohub/pull/33))
+- PostHog `$pageleave` and `$web_vitals` (LCP/CLS/FCP/INP) capture, still URL-scrubbed via `before_send` ([#27](https://github.com/weamp-org/unipascohub/pull/27))
+
+### Changed
+
+- `GET /api/courses` always includes `programIds` (`CourseListResponse` is now `CourseDetail[]`); client-side program filtering replaces strict `programId` server filtering
+- `PATCH /api/users/me` accepts `institutionId`/`programId`: linking syncs the canonical school name, cross-institution pairs are rejected (400), switching/clearing the institution clears stale programs
+- Admin nav switches to pill `bg-muted` style with a Catalog tab and Lucide icons, horizontally scrollable on mobile
+- Prisma config and seed scripts load `.env.local` (precedence: real env > `.env.local` > `.env`)
+
+### Fixed
+
+- `pasco_filtered` analytics events track institution/program keys
+- Admin users page clamps to the last valid page when a promotion shrinks the list
+- Swallowed `mutateAsync` rejections in pasco edit form and file actions (toasts already fire via `onError`, no unhandled rejections)
+- Prisma CLI no longer ignores `.env.local`, fixing localhost DB/keys in local runs
+
+> Self-hosters: `db:deploy` applies the two new `User` FK migrations automatically (school names backfill `institutionId`; `programId` starts empty). If your PostHog project predates the SDK flag, enable the **Web vitals autocapture** toggle in PostHog project settings.
 
 ## [1.2.2] - 2026-08-30
 
@@ -182,7 +204,8 @@ Initial documented baseline of implemented functionality.
 - Cloudinary widget signing with source and widget timestamp
 - Font variable consistency in globals.css
 
-[Unreleased]: https://github.com/weamp-org/unipascohub/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/weamp-org/unipascohub/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/weamp-org/unipascohub/releases/tag/v1.3.0
 [1.2.2]: https://github.com/weamp-org/unipascohub/releases/tag/v1.2.2
 [1.2.1]: https://github.com/weamp-org/unipascohub/releases/tag/v1.2.1
 [1.2.0]: https://github.com/weamp-org/unipascohub/releases/tag/v1.2.0
