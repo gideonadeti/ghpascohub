@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/db";
 import type { Course } from "../../generated/prisma/client";
 import { Prisma } from "../../generated/prisma/client";
+import {
+  CatalogSubmissionStatus,
+  CatalogSubmissionType,
+} from "../../generated/prisma/enums";
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_CODE_LENGTH = 50;
@@ -322,6 +326,62 @@ export async function getCourseDetailById(
   }
 
   return { success: true, course };
+}
+
+export async function getCourseBreadcrumbById(courseId: string): Promise<
+  | {
+      success: true;
+      course: {
+        id: string;
+        code: string;
+        title: string;
+        institution: { id: string; name: string };
+        programs: { id: string; name: string; type: string }[];
+      };
+    }
+  | { success: false }
+> {
+  const [course, submission] = await Promise.all([
+    prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        id: true,
+        code: true,
+        title: true,
+        institution: { select: { id: true, name: true } },
+        programs: {
+          select: { id: true, name: true, type: true },
+          orderBy: [{ name: "asc" }, { type: "asc" }],
+        },
+      },
+    }),
+    prisma.catalogSubmission.findFirst({
+      where: {
+        approvedCourseId: courseId,
+        status: CatalogSubmissionStatus.APPROVED,
+        type: CatalogSubmissionType.COURSE,
+      },
+      select: { programIds: true },
+      orderBy: { reviewedAt: "desc" },
+    }),
+  ]);
+
+  if (!course) {
+    return { success: false };
+  }
+
+  const submittedProgramIds = new Set(submission?.programIds ?? []);
+  const programs = course.programs.filter((program) =>
+    submittedProgramIds.has(program.id),
+  );
+
+  return {
+    success: true,
+    course: {
+      ...course,
+      programs: programs.length > 0 ? programs : course.programs,
+    },
+  };
 }
 
 export async function createCourse(input: CourseCreateInput): Promise<

@@ -1,5 +1,10 @@
-import "dotenv/config";
 import { defineConfig } from "prisma/config";
+
+import { loadCliEnv } from "./prisma/lib/load-cli-env";
+
+// Prisma CLI only reads `.env` by default; also pick up `.env.local`
+// (real environment > `.env.local` > `.env`, matching Next.js).
+loadCliEnv();
 
 /**
  * Seed scripts are registered in package.json as `seed-*` commands (e.g.

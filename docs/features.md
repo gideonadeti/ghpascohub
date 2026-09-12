@@ -47,7 +47,7 @@ Catalog mutations require `ADMIN` role. Reads are public.
 
 ### List filters
 
-`courseId`, `educationLevel`, `academicYear`, `semesterType`, `type`, `contentType`, `isComplete`, `page`, `limit`, `sortBy`, `sortOrder`.
+`q`, `institutionId`, `programId`, `courseId`, `educationLevel`, `academicYear`, `semesterType`, `type`, `contentType`, `isComplete`, `page`, `limit`, `sortBy`, `sortOrder`.
 
 ### Sort fields
 
@@ -82,8 +82,8 @@ See [file-uploads.md](file-uploads.md) for the end-to-end upload pipeline.
 | Auto-unflag on dislike drop (DISLIKES)     | Done   | [`src/lib/pasco-engagement.ts`](../src/lib/pasco-engagement.ts)                                                                                                          |
 | In-app notifications (queue + reject)      | Done   | [`src/lib/notifications.ts`](../src/lib/notifications.ts), [`src/components/notification-bell.tsx`](../src/components/notification-bell.tsx)                             |
 | Admin-configurable dislike threshold       | Done   | [`src/lib/moderation-settings.ts`](../src/lib/moderation-settings.ts), [`src/components/admin-moderation-settings.tsx`](../src/components/admin-moderation-settings.tsx) |
-| Feedback submission (signed-in users)      | Done   | [`src/app/api/feedback/route.ts`](../src/app/api/feedback/route.ts), [`src/app/feedback/page.tsx`](../src/app/feedback/page.tsx)                                       |
-| Feedback management (moderator+)           | Done   | [`src/app/api/feedback/`](../src/app/api/feedback/), [`src/app/moderation/feedback/page.tsx`](../src/app/moderation/feedback/page.tsx)                                 |
+| Feedback submission (signed-in users)      | Done   | [`src/app/api/feedback/route.ts`](../src/app/api/feedback/route.ts), [`src/app/feedback/page.tsx`](../src/app/feedback/page.tsx)                                         |
+| Feedback management (moderator+)           | Done   | [`src/app/api/feedback/`](../src/app/api/feedback/), [`src/app/moderation/feedback/page.tsx`](../src/app/moderation/feedback/page.tsx)                                   |
 
 ## Permissions
 
@@ -114,20 +114,20 @@ See [operations.md](operations.md) for maintenance workflows.
 
 ## Frontend (current state)
 
-| Page             | Path                     | Status                                               |
-| ---------------- | ------------------------ | ---------------------------------------------------- |
-| Home             | `/`                      | Hero, v1 search, recent + popular pasco sections     |
-| Browse pascos    | `/pascos`                | URL filters, sort, pagination                        |
-| Create pasco     | `/pascos/new`            | Functional                                           |
-| Pasco detail     | `/pascos/[pascoId]`      | Functional (course code/title on detail)             |
-| Edit pasco       | `/pascos/[pascoId]/edit` | Functional                                           |
-| My contributions | `/contributions`         | Uploads + catalog request history (contributor gate) |
-| Catalog review   | `/moderation/catalog`    | Pending/rejected contributor catalog requests        |
-| Contributors     | `/contributors`          | Team cards + open-source contribution guide (`siteContributors`) |
-| Sponsors         | `/sponsors`              | Stub page                                            |
-| Privacy          | `/privacy`               | Draft placeholder                                    |
-| Terms            | `/terms`                 | Draft placeholder                                    |
-| Feedback         | `/feedback`              | Feedback hub with anchor sections                    |
+| Page             | Path                     | Status                                                                |
+| ---------------- | ------------------------ | --------------------------------------------------------------------- |
+| Home             | `/`                      | Hero, v1 search, recent + popular pasco sections                      |
+| Browse pascos    | `/pascos`                | URL filters, sort, pagination                                         |
+| Create pasco     | `/pascos/new`            | Functional                                                            |
+| Pasco detail     | `/pascos/[pascoId]`      | Functional with institution, selected program, and course breadcrumbs |
+| Edit pasco       | `/pascos/[pascoId]/edit` | Functional                                                            |
+| My contributions | `/contributions`         | Uploads + catalog request history (contributor gate)                  |
+| Catalog review   | `/moderation/catalog`    | Pending/rejected contributor catalog requests                         |
+| Contributors     | `/contributors`          | Team cards + open-source contribution guide (`siteContributors`)      |
+| Sponsors         | `/sponsors`              | Stub page                                                             |
+| Privacy          | `/privacy`               | Draft placeholder                                                     |
+| Terms            | `/terms`                 | Draft placeholder                                                     |
+| Feedback         | `/feedback`              | Feedback hub with anchor sections                                     |
 
 Infrastructure in place: TanStack Query, shadcn/ui components, toast notifications, basic header with auth.
 
@@ -138,7 +138,6 @@ See [frontend.md](frontend.md) for component structure and planned UI work.
 These are the main gaps before a student-facing product launch:
 
 - **Enriched pasco display** — course code/title on list cards when not filtered by course
-- **Navigation polish** — full breadcrumbs (institution → program → course)
 - **Admin dashboard UI** — orphan cleanup and failure inspection in the browser
 - **Automated tests** — no test suite yet
 - **Text search** — list API supports filters only, not free-text search

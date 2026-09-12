@@ -36,6 +36,8 @@ const PASCO_CONTENT_TYPE_SET = new Set<string>(PASCO_CONTENT_TYPES);
 
 export type PascoListQuery = {
   q?: string;
+  institutionId?: string;
+  programId?: string;
   courseId?: string;
   courseIds?: string[];
   educationLevel?: PascoListFilters["educationLevel"];
@@ -115,6 +117,8 @@ export function parseListPascosQuery(
   | { success: false; error: PascoListParseError } {
   const defaultLimit = options.defaultLimit ?? DEFAULT_LIST_LIMIT;
   const qParam = searchParams.get("q");
+  const institutionIdParam = searchParams.get("institutionId");
+  const programIdParam = searchParams.get("programId");
   const courseIdParam = searchParams.get("courseId");
   const educationLevelParam = searchParams.get("educationLevel");
   const studyModeParam = searchParams.get("studyMode");
@@ -215,6 +219,8 @@ export function parseListPascosQuery(
     success: true,
     data: {
       q,
+      institutionId: institutionIdParam?.trim() || undefined,
+      programId: programIdParam?.trim() || undefined,
       courseId: courseIdParam?.trim() || undefined,
       educationLevel:
         educationLevelParam !== null
@@ -256,6 +262,14 @@ export function queryToFilters(query: PascoListQuery): PascoListFilters {
 
   if (query.q !== undefined) {
     filters.q = query.q;
+  }
+
+  if (query.institutionId !== undefined) {
+    filters.institutionId = query.institutionId;
+  }
+
+  if (query.programId !== undefined) {
+    filters.programId = query.programId;
   }
 
   if (query.courseId !== undefined) {
@@ -317,6 +331,14 @@ export function filtersToSearchParams(
 
   if (filters.q) {
     params.set("q", filters.q);
+  }
+
+  if (filters.institutionId) {
+    params.set("institutionId", filters.institutionId);
+  }
+
+  if (filters.programId) {
+    params.set("programId", filters.programId);
   }
 
   if (filters.courseId) {

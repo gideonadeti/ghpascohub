@@ -1378,6 +1378,18 @@ export async function listPascos(params: PascoListQuery): Promise<
 
   const where = {
     moderationStatus: PascoModerationStatus.PUBLISHED,
+    ...(params.institutionId || params.programId
+      ? {
+          course: {
+            ...(params.institutionId
+              ? { institutionId: params.institutionId }
+              : {}),
+            ...(params.programId
+              ? { programs: { some: { id: params.programId } } }
+              : {}),
+          },
+        }
+      : {}),
     ...(params.courseId ? { courseId: params.courseId } : {}),
     ...(params.courseIds && params.courseIds.length > 0
       ? { courseId: { in: params.courseIds } }

@@ -13,7 +13,6 @@ import { PascoEngagementBar } from "@/components/pasco-engagement-bar";
 import { PascoFileActions } from "@/components/pasco-file-actions";
 import { PascoFileView } from "@/components/pasco-file-view";
 import { PascoModerationActions } from "@/components/pasco-moderation-actions";
-import { PascoPageNav } from "@/components/pasco-page-nav";
 import { ReportPascoLink } from "@/components/report-pasco-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +27,6 @@ import { formatEnumLabel } from "@/lib/catalog-labels";
 import { formatDateTime } from "@/lib/dates";
 import { buildPascoCreateHref } from "@/lib/pasco-create-href";
 import {
-  getPascoBrowseHref,
   getPascoDisplayDescription,
   getPascoDisplayTitle,
   pascoOverviewBadges,
@@ -114,8 +112,6 @@ export function PascoDetailPage({
 
   return (
     <div className="space-y-8">
-      <PascoPageNav href={getPascoBrowseHref(pasco)} />
-
       {isUploaderPending ? (
         <Alert>
           <AlertTitle>Under review</AlertTitle>

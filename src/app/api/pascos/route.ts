@@ -113,6 +113,8 @@ export async function GET(req: Request) {
 
     const listQuery: PascoListQuery = {
       ...parsed.data,
+      institutionId: resolvedFilters.institutionId,
+      programId: resolvedFilters.programId,
       courseId: resolvedFilters.courseId,
       courseIds: resolvedFilters.courseIds,
       educationLevel: resolvedFilters.educationLevel,

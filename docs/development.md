@@ -51,6 +51,8 @@ Then set `DATABASE_URL` in `.env`:
 DATABASE_URL="postgresql://postgres:your-local-password@localhost:5432/unipascohub"
 ```
 
+Machine-specific values may instead live in `.env.local` (create it with `cp .env.example .env.local` and keep only your overrides there). Prisma CLI commands (`prisma migrate`, `generate`, `studio`) and the `pnpm seed-*` scripts load both files with the same precedence Next.js uses at runtime: real environment > `.env.local` > `.env` (see `prisma/lib/load-cli-env.ts`).
+
 Rate limiting uses Upstash's HTTP/REST Redis client: set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (from the "REST API" section of your database in the [Upstash console](https://console.upstash.com/redis)) to enable distributed rate limiting. Without them the app uses an in-memory store, which is fine for development. (The Redis container in `compose.local.yaml` is not used by the app.)
 
 ### 3. Environment variables

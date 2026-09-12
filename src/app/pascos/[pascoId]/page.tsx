@@ -2,13 +2,14 @@ import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-
+import { Breadcrumbs } from "@/components/layout/breadcrumbs";
 import { PageContainer } from "@/components/layout/page-container";
 import { PascoDetailPage } from "@/components/pasco-detail-page";
-import { formatEnumLabel } from "@/lib/catalog-labels";
-import { getCourseById } from "@/lib/courses";
+import { formatEnumLabel, formatProgramLabel } from "@/lib/catalog-labels";
+import { getCourseBreadcrumbById, getCourseById } from "@/lib/courses";
 import { getPascoDisplayTitle } from "@/lib/pasco-display";
 import { getViewerReactionsForPascos } from "@/lib/pasco-engagement";
+import { filtersToSearchParams } from "@/lib/pasco-list-query";
 import { getPascoById, serializePasco } from "@/lib/pascos";
 import {
   breadcrumbJsonLd,
@@ -60,7 +61,7 @@ async function getPascoData(pascoId: string) {
     return null;
   }
 
-  const courseResult = await getCourseById(result.pasco.courseId);
+  const courseResult = await getCourseBreadcrumbById(result.pasco.courseId);
   const course = courseResult.success ? courseResult.course : null;
 
   return { pasco: result.pasco, course };
@@ -82,14 +83,45 @@ export default async function PascoDetailRoute({
       null)
     : undefined;
 
-  const breadcrumb = breadcrumbJsonLd([
+  const selectedProgram = data.course?.programs[0];
+  const institutionBrowseHref = data.course
+    ? `/pascos?${filtersToSearchParams({ institutionId: data.course.institution.id }).toString()}`
+    : "/pascos";
+  const programBrowseHref = selectedProgram
+    ? `/pascos?${filtersToSearchParams({ programId: selectedProgram.id }).toString()}`
+    : "/pascos";
+  const courseBrowseHref = data.course
+    ? `/pascos?${filtersToSearchParams({ courseId: data.course.id }).toString()}`
+    : "/pascos";
+  const breadcrumbItems = [
     { name: "Home", href: "/" },
     { name: "Browse pascos", href: "/pascos" },
+    ...(data.course
+      ? [
+          {
+            name: data.course.institution.name,
+            href: institutionBrowseHref,
+          },
+          ...(selectedProgram
+            ? [
+                {
+                  name: formatProgramLabel(selectedProgram),
+                  href: programBrowseHref,
+                },
+              ]
+            : []),
+          {
+            name: `${data.course.code} — ${data.course.title}`,
+            href: courseBrowseHref,
+          },
+        ]
+      : []),
     {
-      name: getPascoDisplayTitle(data.pasco, data.course),
+      name: `${data.pasco.academicYear} · ${formatEnumLabel(data.pasco.semesterType)} · ${formatEnumLabel(data.pasco.type)}`,
       href: `/pascos/${pascoId}`,
     },
-  ]);
+  ];
+  const breadcrumb = breadcrumbJsonLd(breadcrumbItems);
 
   const pascoSchema = pascoJsonLd(data.pasco, data.course);
 
@@ -106,6 +138,7 @@ export default async function PascoDetailRoute({
 
   return (
     <PageContainer width="narrow" className="space-y-8">
+      <Breadcrumbs items={breadcrumbItems} />
       <script
         type="application/ld+json"
         /* biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD serialized via serializeJsonLd (escapes <, >, &, line separators) */

@@ -155,7 +155,7 @@ Smart search parses free-text queries into structured browse filters and course 
 | ------- | -------- |
 | **Hero search** | Debounced autocomplete via `GET /api/search/suggest`; course pick navigates to structured `/pascos?courseId=...` URL; Enter submits `/pascos?q=...` |
 | **Browse search** | URL param `q` (max 200 chars); server resolves year, level, type, semester, and course code/title |
-| **Explicit filters** | URL params (`courseId`, `academicYear`, etc.) override values parsed from `q` when present |
+| **Explicit filters** | URL params (`institutionId`, `programId`, `courseId`, `academicYear`, etc.) override values parsed from `q` when present |
 
 **Bare shortcuts:** A query that is only a four-digit year (e.g. `2024`) expands to that academic year (`2024/2025`). A query that is only `100`, `200`, `300`, or `400` maps to the matching education level. Leftover tokens after course-code extraction follow the same rules (e.g. `DCIT 101 2024`).
 

@@ -99,8 +99,12 @@ function PascoEditFileLink({
   const viewUrlMutation = usePascoFileViewUrl(pascoId);
 
   async function handleOpen() {
-    const result = await viewUrlMutation.mutateAsync(file.id);
-    window.open(result.fileUrl, "_blank", "noopener,noreferrer");
+    try {
+      const result = await viewUrlMutation.mutateAsync(file.id);
+      window.open(result.fileUrl, "_blank", "noopener,noreferrer");
+    } catch {
+      // Rejection already surfaced via the mutation's onError toast.
+    }
   }
 
   return (

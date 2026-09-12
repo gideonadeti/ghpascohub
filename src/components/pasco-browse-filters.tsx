@@ -58,6 +58,8 @@ const ANY_VALUE = "__any__";
 
 // Only filter *keys* are ever tracked — never filter values.
 const APPLIED_FILTER_KEYS = [
+  "institutionId",
+  "programId",
   "courseId",
   "academicYear",
   "educationLevel",
@@ -89,8 +91,8 @@ type DraftFilters = {
 
 function filtersToDraft(filters: PascoListFilters): DraftFilters {
   return {
-    institutionId: "",
-    programId: "",
+    institutionId: filters.institutionId ?? "",
+    programId: filters.programId ?? "",
     courseId: filters.courseId ?? "",
     academicYear: filters.academicYear ?? "",
     educationLevel: filters.educationLevel ?? ANY_VALUE,
@@ -112,6 +114,8 @@ function draftToFilters(
   appliedFilters: PascoListFilters,
 ): PascoListFilters {
   return {
+    institutionId: draft.institutionId || undefined,
+    programId: draft.programId || undefined,
     courseId: draft.courseId || undefined,
     academicYear: draft.academicYear || undefined,
     educationLevel:
@@ -146,6 +150,8 @@ function draftToFilters(
 function countActiveFilters(filters: PascoListFilters): number {
   let count = 0;
 
+  if (filters.institutionId) count += 1;
+  if (filters.programId) count += 1;
   if (filters.courseId) count += 1;
   if (filters.academicYear) count += 1;
   if (filters.educationLevel) count += 1;

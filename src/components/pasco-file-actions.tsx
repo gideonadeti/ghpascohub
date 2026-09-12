@@ -48,12 +48,16 @@ export function PascoFileActions({
   const viewAriaLabel = `View ${file.fileName}`;
 
   async function handleView() {
-    const result = await viewUrlMutation.mutateAsync(file.id);
-    onView({
-      ...file,
-      fileUrl: result.fileUrl,
-      fileName: result.fileName,
-    });
+    try {
+      const result = await viewUrlMutation.mutateAsync(file.id);
+      onView({
+        ...file,
+        fileUrl: result.fileUrl,
+        fileName: result.fileName,
+      });
+    } catch {
+      // Rejection already surfaced via the mutation's onError toast.
+    }
   }
 
   function renderViewButton() {

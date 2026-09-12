@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- Pasco detail breadcrumbs for institution, selected program, and course, with catalog crumbs linking directly to filtered pasco browse results
+- Institution and program scopes in pasco browse URLs and API filtering
+
 ## [1.2.2] - 2026-08-30
 
 ### Added

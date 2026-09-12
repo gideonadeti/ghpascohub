@@ -45,6 +45,8 @@ export type PascoListSortOrder = "asc" | "desc";
 
 export type PascoListFilters = {
   q?: string;
+  institutionId?: string;
+  programId?: string;
   courseId?: string;
   educationLevel?: EducationLevel;
   studyMode?: StudyMode;
