@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PascoBrowsePagination } from "@/components/pasco-browse-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,16 @@ export function AdminUsersClient() {
   const users = usersQuery.data?.users ?? [];
   const total = usersQuery.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / USERS_PAGE_SIZE));
+
+  // A promotion can shrink the list (promoted users drop out of the
+  // NORMAL_USER/CONTRIBUTOR filter), leaving the current page out of range.
+  // Clamp only once the response for the current filters has loaded so a
+  // newly selected page is not reset before its data arrives.
+  useEffect(() => {
+    if (usersQuery.data && page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages, usersQuery.data]);
 
   const handleRoleFilterChange = (role: string) => {
     setRoleFilter(role);
