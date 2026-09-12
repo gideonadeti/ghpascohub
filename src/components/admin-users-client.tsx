@@ -1,11 +1,19 @@
 "use client";
 
 import { useState } from "react";
-
+import { PascoBrowsePagination } from "@/components/pasco-browse-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   useAdminUsersList,
   usePromoteToModerator,
@@ -21,13 +29,26 @@ const roleBadgeVariant: Record<
   NORMAL_USER: "default",
 };
 
+const USERS_PAGE_SIZE = 20;
+
 export function AdminUsersClient() {
   const [roleFilter, setRoleFilter] = useState<string>("");
-  const usersQuery = useAdminUsersList(roleFilter ? { role: roleFilter } : {});
+  const [page, setPage] = useState(1);
+  const usersQuery = useAdminUsersList(
+    roleFilter
+      ? { role: roleFilter, page, limit: USERS_PAGE_SIZE }
+      : { page, limit: USERS_PAGE_SIZE },
+  );
   const promoteMutation = usePromoteToModerator();
 
   const users = usersQuery.data?.users ?? [];
   const total = usersQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / USERS_PAGE_SIZE));
+
+  const handleRoleFilterChange = (role: string) => {
+    setRoleFilter(role);
+    setPage(1);
+  };
 
   return (
     <div className="space-y-8">
@@ -45,7 +66,7 @@ export function AdminUsersClient() {
               key={role}
               variant={roleFilter === role ? "default" : "outline"}
               size="sm"
-              onClick={() => setRoleFilter(role)}
+              onClick={() => handleRoleFilterChange(role)}
             >
               {role || "All"}
             </Button>
@@ -64,29 +85,29 @@ export function AdminUsersClient() {
       ) : users.length === 0 ? (
         <p className="text-sm text-muted-foreground">No users found.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="pb-2 pr-4 font-medium">Name</th>
-                <th className="pb-2 pr-4 font-medium">Role</th>
-                <th className="pb-2 pr-4 font-medium">School</th>
-                <th className="pb-2 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="space-y-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>School</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {users.map((user) => (
-                <tr key={user.id} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-medium">{user.name}</td>
-                  <td className="py-2 pr-4">
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell>
                     <Badge variant={roleBadgeVariant[user.role] ?? "default"}>
                       {user.role}
                     </Badge>
-                  </td>
-                  <td className="py-2 pr-4 text-muted-foreground">
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
                     {user.school ?? "—"}
-                  </td>
-                  <td className="py-2">
+                  </TableCell>
+                  <TableCell className="text-right">
                     {user.role === "NORMAL_USER" ||
                     user.role === "CONTRIBUTOR" ? (
                       <Button
@@ -105,11 +126,16 @@ export function AdminUsersClient() {
                         {user.role === "ADMIN" ? "—" : "Already moderator"}
                       </span>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
+          <PascoBrowsePagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>
