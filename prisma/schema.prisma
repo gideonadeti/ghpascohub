@@ -111,24 +111,31 @@ enum CatalogSubmissionStatus {
 }
 
 model User {
-  id        String   @id
-  name      String
-  school    String?
-  role      UserRole @default(NORMAL_USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id
+  name          String
+  school        String?
+  institutionId String?
+  programId     String?
+  role          UserRole @default(NORMAL_USER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  pascos                    Pasco[]
-  pascoReactions            PascoReaction[]
-  pascoDownloads            PascoDownload[]
-  storageCleanupFailures    StorageCleanupFailure[]
-  storageCleanupRuns        StorageCleanupRun[]
-  searchQueries             SearchQuery[]
-  notifications             Notification[]
-  pushSubscriptions          PushSubscription[]
+  institution                 Institution?        @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+  program                     Program?            @relation(fields: [programId], references: [id], onDelete: SetNull)
+  pascos                      Pasco[]
+  pascoReactions              PascoReaction[]
+  pascoDownloads              PascoDownload[]
+  storageCleanupFailures      StorageCleanupFailure[]
+  storageCleanupRuns          StorageCleanupRun[]
+  searchQueries               SearchQuery[]
+  notifications               Notification[]
+  pushSubscriptions           PushSubscription[]
   catalogSubmissionsSubmitted CatalogSubmission[] @relation("CatalogSubmissionSubmitter")
   catalogSubmissionsReviewed  CatalogSubmission[] @relation("CatalogSubmissionReviewer")
   feedback                    Feedback[]
+
+  @@index([institutionId])
+  @@index([programId])
 }
 
 model Institution {
@@ -140,6 +147,7 @@ model Institution {
   programs           Program[]
   courses            Course[]
   catalogSubmissions CatalogSubmission[]
+  users              User[]
 
   @@unique([name])
 }
@@ -154,6 +162,7 @@ model Program {
 
   institution Institution @relation(fields: [institutionId], references: [id], onDelete: Restrict)
   courses     Course[]
+  users       User[]
 
   @@unique([institutionId, name, type])
   @@index([institutionId, type])

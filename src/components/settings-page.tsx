@@ -1,11 +1,12 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
 import { ContributorUpgradeCard } from "@/components/contributor-upgrade-card";
 import { InstitutionCombobox } from "@/components/institution-combobox";
+import { ProgramCombobox } from "@/components/program-combobox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
   useUpdateCurrentUserProfile,
 } from "@/hooks/api/use-current-user";
 import { useInstitutions } from "@/hooks/api/use-institutions";
+import { programsListOptions } from "@/lib/api/programs";
 import { formatEnumLabel } from "@/lib/catalog-labels";
 import { MAX_SCHOOL_LENGTH } from "@/lib/constants";
 import { isContributorRole } from "@/lib/pasco-permissions";
@@ -68,10 +70,13 @@ export function SettingsPage() {
 
   const user = currentUser.data?.user;
   const savedSchool = user?.school ?? "";
+  const savedInstitutionId = user?.institutionId ?? "";
+  const savedProgramId = user?.programId ?? "";
   const institutions = institutionsQuery.data?.institutions;
 
   const [school, setSchool] = useState("");
   const [institutionId, setInstitutionId] = useState("");
+  const [programId, setProgramId] = useState("");
 
   useEffect(() => {
     setSchool(savedSchool);
@@ -82,14 +87,63 @@ export function SettingsPage() {
       return;
     }
 
-    setInstitutionId(findInstitutionIdBySchool(institutions, school));
-  }, [institutions, school]);
+    // Prefer the linked FK; fall back to fuzzy-matching the legacy
+    // free-text school so pre-migration accounts stay selected.
+    setInstitutionId(
+      savedInstitutionId ||
+        findInstitutionIdBySchool(institutions, savedSchool || null),
+    );
+  }, [institutions, savedInstitutionId, savedSchool]);
+
+  useEffect(() => {
+    setProgramId(savedProgramId);
+  }, [savedProgramId]);
 
   const trimmedSchool = school.trim();
-  const isDirty = trimmedSchool !== savedSchool;
+  const resolvedInstitutionId =
+    institutionId ||
+    findInstitutionIdBySchool(institutions ?? [], trimmedSchool || null);
+  // While the catalog is loading or unavailable, trust the saved FK so the
+  // manual input doesn't flash for linked users and a save can't drop the
+  // link during an outage.
+  const effectiveInstitutionId =
+    resolvedInstitutionId.length > 0
+      ? resolvedInstitutionId
+      : institutionsQuery.isPending || institutionsQuery.isError
+        ? savedInstitutionId
+        : "";
+  const hasLinkedInstitution = effectiveInstitutionId.length > 0;
+  const linkedInstitution = institutions?.find(
+    (institution) => institution.id === effectiveInstitutionId,
+  );
+
+  const programsQuery = useQuery({
+    ...programsListOptions({ institutionId: effectiveInstitutionId }),
+    enabled: effectiveInstitutionId.length > 0,
+  });
+  const programs = programsQuery.data?.programs ?? [];
+  // A saved program from another institution is stale — treat as unset.
+  const resolvedProgramId =
+    programs.some((program) => program.id === programId) ||
+    (programsQuery.isPending && programId === savedProgramId)
+      ? programId
+      : "";
+
+  const isDirty =
+    trimmedSchool !== savedSchool ||
+    effectiveInstitutionId !==
+      (savedInstitutionId ||
+        findInstitutionIdBySchool(institutions ?? [], savedSchool || null)) ||
+    resolvedProgramId !== savedProgramId;
   const isSchoolTooLong = trimmedSchool.length > MAX_SCHOOL_LENGTH;
 
-  const canSave = isDirty && !updateProfile.isPending && !isSchoolTooLong;
+  // Manual edits can't resolve against the catalog, so hold saves until it
+  // loads.
+  const canSave =
+    isDirty &&
+    !updateProfile.isPending &&
+    !isSchoolTooLong &&
+    !institutionsQuery.isPending;
 
   const roleLabel = useMemo(
     () => (user ? formatEnumLabel(user.role) : ""),
@@ -98,6 +152,8 @@ export function SettingsPage() {
 
   function handleInstitutionChange(nextInstitutionId: string) {
     setInstitutionId(nextInstitutionId);
+    // Programs belong to an institution — switching resets the selection.
+    setProgramId("");
 
     const institution = institutions?.find(
       (item) => item.id === nextInstitutionId,
@@ -113,24 +169,39 @@ export function SettingsPage() {
       return;
     }
 
-    updateProfile.mutate(
-      { school: trimmedSchool.length > 0 ? trimmedSchool : null },
-      {
-        onSuccess: () => {
-          toast.success("Profile updated");
-        },
-        onError: (error) => {
-          toast.error(error.message);
-        },
+    // Linking catalog entries keeps the display name canonical (the API
+    // syncs `school` to the institution name and derives the institution
+    // from the program). Otherwise the free-text school is stored on its
+    // own and any linked program is cleared.
+    const payload =
+      effectiveInstitutionId.length > 0
+        ? {
+            institutionId: effectiveInstitutionId,
+            programId: resolvedProgramId.length > 0 ? resolvedProgramId : null,
+          }
+        : {
+            institutionId: null,
+            programId: null,
+            school: trimmedSchool.length > 0 ? trimmedSchool : null,
+          };
+
+    updateProfile.mutate(payload, {
+      onSuccess: () => {
+        toast.success("Profile updated");
       },
-    );
+      onError: (error) => {
+        toast.error(error.message);
+      },
+    });
   }
 
   function handleReset() {
     setSchool(savedSchool);
     setInstitutionId(
-      findInstitutionIdBySchool(institutions ?? [], user?.school ?? null),
+      savedInstitutionId ||
+        findInstitutionIdBySchool(institutions ?? [], savedSchool || null),
     );
+    setProgramId(savedProgramId);
   }
 
   if (!user) {
@@ -165,7 +236,8 @@ export function SettingsPage() {
         <CardHeader>
           <CardTitle>School</CardTitle>
           <CardDescription>
-            Optional. Helps personalize your experience on Uni Pasco Hub.
+            Optional. We show pascos from your school by default — you can still
+            browse other schools anytime.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -175,8 +247,7 @@ export function SettingsPage() {
                 Pick from catalog
               </FieldLabel>
               <FieldDescription>
-                Choose your institution from the seeded catalog, or enter a
-                custom name below.
+                Choose your institution from the catalog.
               </FieldDescription>
               {institutionsQuery.isPending ? (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -203,29 +274,84 @@ export function SettingsPage() {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="settings-school">School name</FieldLabel>
-              <Input
-                id="settings-school"
-                value={school}
-                onChange={(event) => {
-                  setSchool(event.target.value);
-                  setInstitutionId(
-                    findInstitutionIdBySchool(
-                      institutions ?? [],
-                      event.target.value.trim(),
-                    ),
-                  );
-                }}
-                placeholder="e.g. University of Cape Coast"
-                maxLength={MAX_SCHOOL_LENGTH}
-                aria-invalid={isSchoolTooLong}
-              />
-              {isSchoolTooLong ? (
-                <p className="text-sm text-destructive">
-                  School name must be {MAX_SCHOOL_LENGTH} characters or fewer.
+              <FieldLabel htmlFor="settings-program">Program</FieldLabel>
+              <FieldDescription>
+                Optional. We suggest your program&apos;s pascos when browsing.
+              </FieldDescription>
+              {effectiveInstitutionId.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Pick an institution above to choose your program.
                 </p>
-              ) : null}
+              ) : programsQuery.isPending ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Spinner aria-hidden />
+                  Loading programs…
+                </div>
+              ) : programsQuery.isError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Could not load programs</AlertTitle>
+                  <AlertDescription>
+                    You can still save your school without a program.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <ProgramCombobox
+                  id="settings-program"
+                  programs={programs}
+                  value={resolvedProgramId}
+                  onValueChange={setProgramId}
+                  allowClear
+                  placeholder="Search programs…"
+                  emptyMessage="No programs for this institution yet."
+                />
+              )}
             </Field>
+
+            {hasLinkedInstitution ? (
+              <Field>
+                <FieldLabel>School</FieldLabel>
+                <FieldDescription>Saved from the catalog.</FieldDescription>
+                <p className="text-sm font-medium">
+                  {linkedInstitution?.name ?? trimmedSchool}
+                </p>
+              </Field>
+            ) : (
+              <Field>
+                <FieldLabel htmlFor="settings-school">School name</FieldLabel>
+                <FieldDescription>
+                  Not listed above? Enter it manually. Note: the school filter
+                  applies to catalog schools.
+                </FieldDescription>
+                <Input
+                  id="settings-school"
+                  value={school}
+                  onChange={(event) => {
+                    const nextSchool = event.target.value;
+                    const nextInstitutionId = findInstitutionIdBySchool(
+                      institutions ?? [],
+                      nextSchool.trim(),
+                    );
+                    setSchool(nextSchool);
+                    setInstitutionId(nextInstitutionId);
+                    // Typing a different school orphans the program selection.
+                    if (
+                      nextInstitutionId !== resolvedInstitutionId &&
+                      programId.length > 0
+                    ) {
+                      setProgramId("");
+                    }
+                  }}
+                  placeholder="e.g. University of Cape Coast"
+                  maxLength={MAX_SCHOOL_LENGTH}
+                  aria-invalid={isSchoolTooLong}
+                />
+                {isSchoolTooLong ? (
+                  <p className="text-sm text-destructive">
+                    School name must be {MAX_SCHOOL_LENGTH} characters or fewer.
+                  </p>
+                ) : null}
+              </Field>
+            )}
 
             <div className="flex flex-wrap gap-2">
               <Button type="button" disabled={!canSave} onClick={handleSave}>

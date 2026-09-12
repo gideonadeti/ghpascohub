@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
+import { useQuery } from "@tanstack/react-query";
 import { FileQuestion, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -23,9 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCurrentUser } from "@/hooks/api/use-current-user";
 import { usePascosList } from "@/hooks/api/use-pascos";
 import { useRecentSearches } from "@/hooks/use-recent-searches";
 import { trackAnalyticsEvent } from "@/lib/analytics/posthog";
+import { programDetailOptions } from "@/lib/api/programs";
 import { formatEnumLabel } from "@/lib/catalog-labels";
 import {
   getPascoCardEmphasis,
@@ -294,15 +298,134 @@ function PascoBrowseSearchBar({
   );
 }
 
+function hasCatalogFilter(filters: PascoListFilters): boolean {
+  return Boolean(
+    filters.institutionId || filters.programId || filters.courseId,
+  );
+}
+
 function PascoBrowsePageContent({
   filters,
   initialData,
 }: PascoBrowsePageContentProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const pascosQuery = usePascosList(filters, initialData);
+  const { isSignedIn } = useAuth();
+  const currentUser = useCurrentUser();
+  const myInstitutionId = currentUser.data?.user.institutionId ?? null;
+  const mySchoolName = currentUser.data?.user.school ?? null;
+  const myProgramId = currentUser.data?.user.programId ?? null;
+
+  // Label for the soft program suggestion; fetched only when set.
+  const myProgramQuery = useQuery({
+    ...programDetailOptions(myProgramId ?? ""),
+    enabled: (myProgramId ?? "").length > 0,
+  });
+  const myProgram = myProgramQuery.data?.program;
+  const showProgramSuggestion = Boolean(
+    myProgram &&
+      !filters.programId &&
+      !filters.courseId &&
+      (!filters.institutionId ||
+        filters.institutionId === myProgram.institutionId),
+  );
+
+  // Capture the SSR filters so the prefetched `initialData` is only used
+  // while the URL still matches what the server rendered. Once the
+  // personalized school default rewrites the URL, the new query key must
+  // fetch instead of reusing the unscoped payload.
+  const [ssrFilters] = useState(filters);
+  const ssrParamsKey = filtersToSearchParams(ssrFilters, {
+    defaultLimit: BROWSE_DEFAULT_LIMIT,
+  }).toString();
+  const currentParamsKey = filtersToSearchParams(filters, {
+    defaultLimit: BROWSE_DEFAULT_LIMIT,
+  }).toString();
+  const pascosQuery = usePascosList(
+    filters,
+    ssrParamsKey === currentParamsKey ? initialData : undefined,
+  );
   const searchMeta = pascosQuery.data?.search;
   const trackedSearchRef = useRef<string | null>(null);
+  const schoolDefaultAppliedRef = useRef(false);
+
+  const updateFilters = (next: PascoListFilters) => {
+    pushFilters(router, pathname, next);
+  };
+
+  // Default signed-in users with a linked school to their institution.
+  // Runs once per page load; explicit catalog filters in shared URLs win,
+  // and clearing the filter afterwards is respected.
+  useEffect(() => {
+    if (schoolDefaultAppliedRef.current) {
+      return;
+    }
+
+    if (isSignedIn !== true || !myInstitutionId) {
+      return;
+    }
+
+    if (hasCatalogFilter(filters)) {
+      schoolDefaultAppliedRef.current = true;
+      return;
+    }
+
+    schoolDefaultAppliedRef.current = true;
+    pushFilters(router, pathname, {
+      ...filters,
+      institutionId: myInstitutionId,
+      page: 1,
+    });
+  }, [isSignedIn, myInstitutionId, filters, router, pathname]);
+
+  const isDefaultActive = Boolean(
+    myInstitutionId &&
+      filters.institutionId === myInstitutionId &&
+      !filters.programId &&
+      !filters.courseId,
+  );
+  const canRestoreDefault = Boolean(
+    myInstitutionId && !hasCatalogFilter(filters),
+  );
+  const showSchoolSetupHint =
+    isSignedIn === true &&
+    currentUser.data !== undefined &&
+    !myInstitutionId &&
+    !hasCatalogFilter(filters);
+  const isProgramActive = Boolean(
+    myProgramId && filters.programId === myProgramId,
+  );
+
+  const handleViewAllSchools = () => {
+    const {
+      institutionId: _institutionId,
+      programId: _programId,
+      courseId: _courseId,
+      ...rest
+    } = filters;
+    updateFilters({ ...rest, page: 1 });
+  };
+
+  const handleShowOnlyMySchool = () => {
+    if (!myInstitutionId) {
+      return;
+    }
+
+    updateFilters({ ...filters, institutionId: myInstitutionId, page: 1 });
+  };
+
+  const handleApplyMyProgram = () => {
+    if (!myProgram) {
+      return;
+    }
+
+    updateFilters({
+      ...filters,
+      institutionId: myProgram.institutionId,
+      programId: myProgram.id,
+      page: 1,
+    });
+  };
 
   useEffect(() => {
     const query = filters.q;
@@ -326,10 +449,6 @@ function PascoBrowsePageContent({
   });
 
   const activeChips = buildActiveChips(filters, courseLabel, searchMeta);
-
-  const updateFilters = (next: PascoListFilters) => {
-    pushFilters(router, pathname, next);
-  };
 
   const clearFilter = (key: ActiveChip["key"]) => {
     if (key === "q") {
@@ -382,7 +501,9 @@ function PascoBrowsePageContent({
 
   const emptyDescription = filters.q
     ? "Try removing the year or level from your search, or upload a new pasco."
-    : "Try clearing a filter or upload a new pasco.";
+    : isDefaultActive && mySchoolName
+      ? `No pascos from ${mySchoolName} yet. Try viewing all schools or upload one.`
+      : "Try clearing a filter or upload a new pasco.";
 
   return (
     <div className="space-y-8">
@@ -390,6 +511,72 @@ function PascoBrowsePageContent({
         initialQuery={filters.q ?? ""}
         onSearch={handleSearch}
       />
+
+      {isDefaultActive ? (
+        <Alert>
+          <AlertTitle>Showing only {mySchoolName ?? "your school"}</AlertTitle>
+          <AlertDescription className="flex flex-wrap items-center gap-2">
+            <span>Pascos from other schools are hidden.</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleViewAllSchools}
+            >
+              View all schools
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : canRestoreDefault ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>Browsing all schools.</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleShowOnlyMySchool}
+          >
+            Show only my school
+          </Button>
+        </div>
+      ) : showSchoolSetupHint ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>Set your school to see relevant pascos first.</span>
+          <Button type="button" variant="outline" size="sm" asChild>
+            <Link href="/settings">Set school</Link>
+          </Button>
+        </div>
+      ) : null}
+
+      {isProgramActive ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>
+            Filtered to my program{myProgram ? `: ${myProgram.label}` : ""}.
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              updateFilters({ ...filters, programId: undefined, page: 1 })
+            }
+          >
+            Clear program filter
+          </Button>
+        </div>
+      ) : showProgramSuggestion && myProgram ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>In {myProgram.label}?</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleApplyMyProgram}
+          >
+            Filter to my program
+          </Button>
+        </div>
+      ) : null}
 
       <PascoBrowseFilters
         appliedFilters={filters}
@@ -544,7 +731,7 @@ function PascoBrowsePageContent({
                   pasco={pasco}
                   emphasize={getPascoCardEmphasis(sortBy)}
                   hiddenBadgeKeys={hiddenBadgeKeysFromFilters(filters)}
-                  showInstitution={!filters.courseId}
+                  showInstitution={!filters.courseId && !filters.institutionId}
                 />
               ))}
             </div>

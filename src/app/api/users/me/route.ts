@@ -53,11 +53,15 @@ export async function PATCH(req: Request) {
     switch (parsed.error) {
       case "invalid_body":
         return Response.json(
-          { error: "Request must include school" },
+          { error: "Request must include school, institutionId, or programId" },
           { status: 400 },
         );
       case "invalid_school":
         return Response.json({ error: "Invalid school" }, { status: 400 });
+      case "invalid_institution":
+        return Response.json({ error: "Invalid institution" }, { status: 400 });
+      case "invalid_program":
+        return Response.json({ error: "Invalid program" }, { status: 400 });
     }
   }
 
@@ -65,6 +69,14 @@ export async function PATCH(req: Request) {
     const result = await updateUserProfile(userId, parsed.data);
 
     if (!result.success) {
+      if (result.error === "invalid_institution") {
+        return Response.json({ error: "Invalid institution" }, { status: 400 });
+      }
+
+      if (result.error === "invalid_program") {
+        return Response.json({ error: "Invalid program" }, { status: 400 });
+      }
+
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
