@@ -1,7 +1,11 @@
-import "dotenv/config";
-
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../generated/prisma/client";
+import { loadCliEnv } from "./load-cli-env";
+
+// tsx does not load env files on its own; Prisma CLI contexts only read
+// `.env` by default, so also pick up `.env.local`
+// (real environment > `.env.local` > `.env`, matching Next.js).
+loadCliEnv();
 
 export function createSeedPrisma(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
