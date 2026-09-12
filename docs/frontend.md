@@ -26,10 +26,7 @@ See [frontend-standards.md](frontend-standards.md) for full conventions.
 | `/`                             | [`src/app/page.tsx`](../src/app/page.tsx)                                                           | Hero, v1 search, recent + popular pasco sections                  |
 | `/pascos`                       | [`src/app/pascos/page.tsx`](../src/app/pascos/page.tsx)                                             | URL-filtered browse grid with pagination                          |
 | `/pascos/new`                   | [`src/app/pascos/new/page.tsx`](../src/app/pascos/new/page.tsx)                                     | `PageHeader`, create form behind contributor gate                 |
-| `/pascos/[pascoId]`             | [`src/app/pascos/[pascoId]/page.tsx`](../src/app/pascos/[pascoId]/page.tsx)                         | `PascoDetailPage` with enriched title, back nav, breadcrumbs      |
-| `/institutions/[institutionId]` | [`src/app/institutions/[institutionId]/page.tsx`](../src/app/institutions/[institutionId]/page.tsx) | Redirects to institution-filtered pascos                          |
-| `/programs/[programId]`         | [`src/app/programs/[programId]/page.tsx`](../src/app/programs/[programId]/page.tsx)                 | Redirects to program-filtered pascos                              |
-| `/courses/[courseId]`           | [`src/app/courses/[courseId]/page.tsx`](../src/app/courses/[courseId]/page.tsx)                     | Redirects to course-filtered pascos                               |
+| `/pascos/[pascoId]`             | [`src/app/pascos/[pascoId]/page.tsx`](../src/app/pascos/[pascoId]/page.tsx)                         | `PascoDetailPage` with enriched title, breadcrumbs                |
 | `/pascos/[pascoId]/edit`        | [`src/app/pascos/[pascoId]/edit/page.tsx`](../src/app/pascos/[pascoId]/edit/page.tsx)               | `PageHeader`, cancel/back nav, edit form + gate                   |
 | `/contributions`                | [`src/app/contributions/page.tsx`](../src/app/contributions/page.tsx)                               | Contributor hub: uploads + catalog requests (`ContributorGate`)   |
 | `/contributors`                 | [`src/app/contributors/page.tsx`](../src/app/contributors/page.tsx)                                 | Team grid from `siteContributors` + open-source contribution CTAs |

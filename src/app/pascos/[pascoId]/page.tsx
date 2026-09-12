@@ -9,6 +9,7 @@ import { formatEnumLabel, formatProgramLabel } from "@/lib/catalog-labels";
 import { getCourseBreadcrumbById, getCourseById } from "@/lib/courses";
 import { getPascoDisplayTitle } from "@/lib/pasco-display";
 import { getViewerReactionsForPascos } from "@/lib/pasco-engagement";
+import { filtersToSearchParams } from "@/lib/pasco-list-query";
 import { getPascoById, serializePasco } from "@/lib/pascos";
 import {
   breadcrumbJsonLd,
@@ -83,6 +84,15 @@ export default async function PascoDetailRoute({
     : undefined;
 
   const selectedProgram = data.course?.programs[0];
+  const institutionBrowseHref = data.course
+    ? `/pascos?${filtersToSearchParams({ institutionId: data.course.institution.id }).toString()}`
+    : "/pascos";
+  const programBrowseHref = selectedProgram
+    ? `/pascos?${filtersToSearchParams({ programId: selectedProgram.id }).toString()}`
+    : "/pascos";
+  const courseBrowseHref = data.course
+    ? `/pascos?${filtersToSearchParams({ courseId: data.course.id }).toString()}`
+    : "/pascos";
   const breadcrumbItems = [
     { name: "Home", href: "/" },
     { name: "Browse pascos", href: "/pascos" },
@@ -90,26 +100,26 @@ export default async function PascoDetailRoute({
       ? [
           {
             name: data.course.institution.name,
-            href: `/institutions/${data.course.institution.id}`,
+            href: institutionBrowseHref,
           },
           ...(selectedProgram
             ? [
                 {
                   name: formatProgramLabel(selectedProgram),
-                  href: `/programs/${selectedProgram.id}`,
+                  href: programBrowseHref,
                 },
               ]
             : []),
           {
             name: `${data.course.code} — ${data.course.title}`,
-            href: `/courses/${data.course.id}`,
+            href: courseBrowseHref,
           },
         ]
       : []),
-    // {
-    //   name: getPascoDisplayTitle(data.pasco, data.course),
-    //   href: `/pascos/${pascoId}`,
-    // },
+    {
+      name: `${data.pasco.academicYear} · ${formatEnumLabel(data.pasco.semesterType)} · ${formatEnumLabel(data.pasco.type)}`,
+      href: `/pascos/${pascoId}`,
+    },
   ];
   const breadcrumb = breadcrumbJsonLd(breadcrumbItems);
 
