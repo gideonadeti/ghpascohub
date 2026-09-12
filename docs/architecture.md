@@ -116,7 +116,7 @@ Many public routes enforce authentication inside the handler for mutations (e.g.
 
 ### Clerk for auth + local User row for roles
 
-Clerk handles sign-in, sessions, and identity. A `User` row in PostgreSQL stores app-specific data: `role`, `school`, and relations to pascos and engagement. Users are synced via webhooks and an SSR fallback component.
+Clerk handles sign-in, sessions, and identity. A `User` row in PostgreSQL stores app-specific data: `role`, `school` (+ `institutionId` link backing the default school filter on browse, and optional `programId` soft preference), and relations to pascos and engagement. Users are synced via webhooks and an SSR fallback component.
 
 ### Cloudinary for file storage
 

@@ -30,7 +30,9 @@ export function upgradeToContributor() {
 }
 
 export type UpdateProfileRequest = {
-  school: string | null;
+  school?: string | null;
+  institutionId?: string | null;
+  programId?: string | null;
 };
 
 export function updateCurrentUserProfile(data: UpdateProfileRequest) {

@@ -32,23 +32,25 @@ erDiagram
 
 ### User
 
-| Field       | Type     | Notes                        |
-| ----------- | -------- | ---------------------------- |
-| `id`        | String   | Clerk user ID (primary key)  |
-| `name`      | String   | From Clerk first + last name |
-| `school`    | String?  | User-editable via profile    |
-| `role`      | UserRole | Default `NORMAL_USER`        |
-| `createdAt` | DateTime |                              |
-| `updatedAt` | DateTime |                              |
+| Field           | Type     | Notes                                                              |
+| --------------- | -------- | ------------------------------------------------------------------ |
+| `id`            | String   | Clerk user ID (primary key)                                        |
+| `name`          | String   | From Clerk first + last name                                       |
+| `school`        | String?  | Display name, synced to linked institution if set                  |
+| `institutionId` | String?  | FK → Institution, user-editable via settings                       |
+| `programId`     | String?  | FK → Program, optional soft preference for browse suggestions      |
+| `role`          | UserRole | Default `NORMAL_USER`                                              |
+| `createdAt`     | DateTime |                                                                    |
+| `updatedAt`     | DateTime |                                                                    |
 
 ### Institution
 
-| Field  | Type   | Notes  |
-| ------ | ------ | ------ |
-| `id`   | String | cuid   |
-| `name` | String | Unique |
+| Field  | Type   | Notes              |
+| ------ | ------ | ------------------ |
+| `id`   | String | cuid               |
+| `name` | String | Unique             |
 
-Top-level academic organization (e.g. a university).
+Top-level academic organization (e.g. a university). Has many `User` rows via `User.institutionId` (set when a user picks their school in settings; backs the default school filter on browse).
 
 ### Program
 
@@ -59,7 +61,7 @@ Top-level academic organization (e.g. a university).
 | `name`          | String      |                       |
 | `type`          | ProgramType | BACHELOR, BTECH, etc. |
 
-Unique per `(institutionId, name, type)`.
+Unique per `(institutionId, name, type)`. Has many `User` rows via `User.programId` (optional soft preference; browse suggests but never auto-applies it).
 
 ### Course
 

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Personalized school filter: users who set their school in settings now see only their school's pascos on browse by default, with a one-click "View all schools" opt-out and "Show only my school" restore (`User.institutionId` FK, backfilled from matching school names)
+- Optional program preference in settings (cascading institution → program picker, `User.programId` FK): browse shows a one-click "Filter to my program" suggestion but never auto-applies it
 - Pasco detail breadcrumbs for institution, selected program, and course, with catalog crumbs linking directly to filtered pasco browse results
 - Institution and program scopes in pasco browse URLs and API filtering
 

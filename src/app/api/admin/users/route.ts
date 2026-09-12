@@ -63,7 +63,14 @@ export async function GET(req: Request) {
         orderBy: { createdAt: "desc" },
         take: limit,
         skip,
-        select: { id: true, name: true, school: true, role: true },
+        select: {
+          id: true,
+          name: true,
+          school: true,
+          institutionId: true,
+          programId: true,
+          role: true,
+        },
       }),
       prisma.user.count({ where }),
     ]);
