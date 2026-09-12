@@ -11,11 +11,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   useStorageCleanupFailures,
   useStorageCleanupRuns,
@@ -37,12 +46,11 @@ function CleanupForm() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4">
-          <Label className="flex items-center gap-2">
-            <input
-              type="checkbox"
+          <Label htmlFor="dry-run" className="flex items-center gap-2">
+            <Checkbox
+              id="dry-run"
               checked={dryRun}
-              onChange={(event) => setDryRun(event.target.checked)}
-              className="h-4 w-4 rounded border-border"
+              onCheckedChange={(checked) => setDryRun(checked === true)}
             />
             Dry run (no deletions)
           </Label>
@@ -100,38 +108,36 @@ function CleanupRunsTable() {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left text-muted-foreground">
-            <th className="pb-2 pr-4 font-medium">Date</th>
-            <th className="pb-2 pr-4 font-medium">Scanned</th>
-            <th className="pb-2 pr-4 font-medium">Orphans</th>
-            <th className="pb-2 pr-4 font-medium">Deleted</th>
-            <th className="pb-2 pr-4 font-medium">Failures</th>
-            <th className="pb-2 font-medium">Type</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((run) => (
-            <tr key={run.id} className="border-b last:border-0">
-              <td className="py-2 pr-4 text-muted-foreground">
-                {new Date(run.createdAt).toLocaleDateString()}
-              </td>
-              <td className="py-2 pr-4">{run.scanned}</td>
-              <td className="py-2 pr-4">{run.orphanCount}</td>
-              <td className="py-2 pr-4">{run.deletedCount}</td>
-              <td className="py-2 pr-4">{run.failureCount}</td>
-              <td className="py-2">
-                <Badge variant={run.dryRun ? "secondary" : "default"}>
-                  {run.dryRun ? "Dry run" : "Cleanup"}
-                </Badge>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Date</TableHead>
+          <TableHead>Scanned</TableHead>
+          <TableHead>Orphans</TableHead>
+          <TableHead>Deleted</TableHead>
+          <TableHead>Failures</TableHead>
+          <TableHead>Type</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {runs.map((run) => (
+          <TableRow key={run.id}>
+            <TableCell className="text-muted-foreground">
+              {new Date(run.createdAt).toLocaleDateString()}
+            </TableCell>
+            <TableCell>{run.scanned}</TableCell>
+            <TableCell>{run.orphanCount}</TableCell>
+            <TableCell>{run.deletedCount}</TableCell>
+            <TableCell>{run.failureCount}</TableCell>
+            <TableCell>
+              <Badge variant={run.dryRun ? "secondary" : "default"}>
+                {run.dryRun ? "Dry run" : "Cleanup"}
+              </Badge>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -164,40 +170,38 @@ function CleanupFailuresTable() {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left text-muted-foreground">
-            <th className="pb-2 pr-4 font-medium">Public ID</th>
-            <th className="pb-2 pr-4 font-medium">Source</th>
-            <th className="pb-2 pr-4 font-medium">Date</th>
-            <th className="pb-2 font-medium">Resolved</th>
-          </tr>
-        </thead>
-        <tbody>
-          {failures.map((failure) => (
-            <tr key={failure.id} className="border-b last:border-0">
-              <td className="max-w-xs truncate py-2 pr-4 font-mono text-xs">
-                {failure.publicId}
-              </td>
-              <td className="py-2 pr-4">
-                <Badge variant="outline">{failure.source}</Badge>
-              </td>
-              <td className="py-2 pr-4 text-muted-foreground">
-                {new Date(failure.createdAt).toLocaleDateString()}
-              </td>
-              <td className="py-2">
-                {failure.resolvedAt ? (
-                  <Badge variant="secondary">Resolved</Badge>
-                ) : (
-                  <Badge variant="destructive">Unresolved</Badge>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Public ID</TableHead>
+          <TableHead>Source</TableHead>
+          <TableHead>Date</TableHead>
+          <TableHead>Resolved</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {failures.map((failure) => (
+          <TableRow key={failure.id}>
+            <TableCell className="max-w-xs truncate font-mono text-xs">
+              {failure.publicId}
+            </TableCell>
+            <TableCell>
+              <Badge variant="outline">{failure.source}</Badge>
+            </TableCell>
+            <TableCell className="text-muted-foreground">
+              {new Date(failure.createdAt).toLocaleDateString()}
+            </TableCell>
+            <TableCell>
+              {failure.resolvedAt ? (
+                <Badge variant="secondary">Resolved</Badge>
+              ) : (
+                <Badge variant="destructive">Unresolved</Badge>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

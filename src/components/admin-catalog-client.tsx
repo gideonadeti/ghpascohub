@@ -2,7 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-
+import { InstitutionCombobox } from "@/components/institution-combobox";
+import { PascoBrowsePagination } from "@/components/pasco-browse-pagination";
+import { ProgramCombobox } from "@/components/program-combobox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +38,14 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useDeleteCourse, useUpdateCourse } from "@/hooks/api/use-courses";
 import { coursesListOptions } from "@/lib/api/courses";
 import { institutionsListOptions } from "@/lib/api/institutions";
@@ -150,13 +161,13 @@ function CourseEditDialog({
                     return (
                       <label
                         key={program.id}
+                        htmlFor={`edit-course-program-${program.id}`}
                         className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted cursor-pointer"
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
+                          id={`edit-course-program-${program.id}`}
                           checked={checked}
-                          onChange={() => toggleProgram(program.id)}
-                          className="h-4 w-4 rounded border-border"
+                          onCheckedChange={() => toggleProgram(program.id)}
                         />
                         <span className="text-sm flex-1">{program.label}</span>
                         {checked ? (
@@ -201,6 +212,7 @@ export function AdminCatalogClient() {
   const [institutionId, setInstitutionId] = useState("");
   const [programId, setProgramId] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [editingCourse, setEditingCourse] = useState<EditingCourse | null>(
     null,
   );
@@ -243,9 +255,34 @@ export function AdminCatalogClient() {
     );
   }, [courses, search]);
 
+  const COURSES_PAGE_SIZE = 20;
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCourses.length / COURSES_PAGE_SIZE),
+  );
+  const pagedCourses = useMemo(
+    () =>
+      filteredCourses.slice(
+        (page - 1) * COURSES_PAGE_SIZE,
+        page * COURSES_PAGE_SIZE,
+      ),
+    [filteredCourses, page],
+  );
+
   const handleInstitutionChange = (value: string) => {
     setInstitutionId(value);
     setProgramId("");
+    setPage(1);
+  };
+
+  const handleProgramChange = (value: string) => {
+    setProgramId(value);
+    setPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
   };
 
   return (
@@ -269,36 +306,28 @@ export function AdminCatalogClient() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="catalog-institution">Institution</Label>
-              <select
+              <InstitutionCombobox
                 id="catalog-institution"
+                institutions={institutionsQuery.data?.institutions ?? []}
                 value={institutionId}
-                onChange={(e) => handleInstitutionChange(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="">Select institution</option>
-                {institutionsQuery.data?.institutions.map((inst) => (
-                  <option key={inst.id} value={inst.id}>
-                    {inst.name}
-                  </option>
-                ))}
-              </select>
+                onValueChange={handleInstitutionChange}
+                placeholder="Select institution"
+                disabled={institutionsQuery.isPending}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="catalog-program">Program (filter)</Label>
-              <select
+              <ProgramCombobox
                 id="catalog-program"
+                programs={programs}
                 value={programId}
-                onChange={(e) => setProgramId(e.target.value)}
+                onValueChange={handleProgramChange}
+                placeholder={
+                  institutionId ? "All programs" : "Select institution first"
+                }
                 disabled={!institutionId}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50"
-              >
-                <option value="">All programs</option>
-                {programs.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
+                allowClear
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="catalog-search">Search (code or title)</Label>
@@ -306,7 +335,7 @@ export function AdminCatalogClient() {
                 id="catalog-search"
                 placeholder="e.g. DCIT or programming"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 disabled={!institutionId}
               />
             </div>
@@ -355,86 +384,88 @@ export function AdminCatalogClient() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="px-4 py-2 font-medium">Code</th>
-                    <th className="px-4 py-2 font-medium">Title</th>
-                    <th className="px-4 py-2 font-medium">Programs</th>
-                    <th className="px-4 py-2 font-medium">Updated</th>
-                    <th className="px-4 py-2 font-medium text-right">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCourses.map((course) => {
-                    const c = course as EditingCourse;
-                    const linked = c.programIds ?? [];
-                    return (
-                      <tr
-                        key={c.id}
-                        className="border-b last:border-0 hover:bg-muted/50"
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-4">Code</TableHead>
+                  <TableHead className="px-4">Title</TableHead>
+                  <TableHead className="px-4">Programs</TableHead>
+                  <TableHead className="px-4">Updated</TableHead>
+                  <TableHead className="px-4 text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pagedCourses.map((course) => {
+                  const c = course as EditingCourse;
+                  const linked = c.programIds ?? [];
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="px-4 font-mono text-xs font-medium">
+                        {c.code}
+                      </TableCell>
+                      <TableCell
+                        className="px-4 max-w-xs truncate"
+                        title={c.title}
                       >
-                        <td className="px-4 py-2 font-mono text-xs font-medium">
-                          {c.code}
-                        </td>
-                        <td
-                          className="px-4 py-2 max-w-xs truncate"
-                          title={c.title}
-                        >
-                          {c.title}
-                        </td>
-                        <td className="px-4 py-2">
-                          <div className="flex flex-wrap gap-1 max-w-xs">
-                            {linked.length === 0 ? (
-                              <span className="text-xs text-muted-foreground">
-                                — not linked
-                              </span>
-                            ) : (
-                              linked.map((pid) => {
-                                const prog = programMap.get(pid);
-                                return (
-                                  <Badge
-                                    key={pid}
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    {prog ? prog.label : pid.slice(0, 6)}
-                                  </Badge>
-                                );
-                              })
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2 text-xs text-muted-foreground">
-                          {new Date(c.updatedAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingCourse(c)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setDeleteTarget(c)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        {c.title}
+                      </TableCell>
+                      <TableCell className="px-4">
+                        <div className="flex flex-wrap gap-1 max-w-xs">
+                          {linked.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">
+                              — not linked
+                            </span>
+                          ) : (
+                            linked.map((pid) => {
+                              const prog = programMap.get(pid);
+                              return (
+                                <Badge
+                                  key={pid}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {prog ? prog.label : pid.slice(0, 6)}
+                                </Badge>
+                              );
+                            })
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 text-xs text-muted-foreground">
+                        {new Date(c.updatedAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="px-4 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setEditingCourse(c)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setDeleteTarget(c)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {totalPages > 1 ? (
+              <div className="border-t px-4 py-3">
+                <PascoBrowsePagination
+                  page={page}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       )}
