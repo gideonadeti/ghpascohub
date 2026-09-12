@@ -137,6 +137,15 @@ List responses from `GET /api/pascos` include `course: { code, title, institutio
 - View / Download: icon-only on mobile (`size="icon-sm"`); icon + label from `sm` breakpoint up
 - Descriptive `aria-label` per file (e.g. `View exam.pdf`, `Download exam.pdf`)
 
+## File preview
+
+`PascoFileView` (PDF + image; download-only files bypass it):
+
+- Mobile (<640px): true fullscreen immersive dialog — `100dvh`, edge-to-edge (`overlayClassName="p-0 sm:p-6"` on `DialogContentInOverlay`, `border-0 ring-0 rounded-none`), slim header with file size second line, single-row footer with full-width `Open in new tab`
+- Desktop (`sm`+): centered modal (`h-[90vh]`, `max-w-6xl`, `rounded-2xl`) — unchanged
+- Images render on a black background (lightbox feel); PDFs default to `FitWidth` zoom with pinch-zoom enabled (`touch-action: pan-x pan-y pinch-zoom`)
+- Header/footer respect safe-area insets; keep them slim so the reading area stays maximal
+
 ---
 
 ## Data fetching

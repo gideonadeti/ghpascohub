@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { formatPascoFileSize } from "@/lib/pasco-file-format";
 import { getPascoFileViewKind } from "@/lib/pasco-file-types";
 import { cn } from "@/lib/utils";
 import type { PascoFileWithSignedUrl } from "@/types/api/pascos";
@@ -53,24 +54,29 @@ export function PascoFileView({ file, onClose }: PascoFileViewProps) {
       }}
     >
       <DialogContentInOverlay
+        overlayClassName="p-0 sm:p-6"
         className={cn(
           "flex flex-col gap-0 overflow-hidden p-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-none",
-          "h-dvh max-h-dvh w-full max-w-full rounded-none sm:h-[90vh] sm:max-h-[90vh] sm:max-w-6xl sm:rounded-2xl",
+          "h-[100dvh] max-h-[100dvh] w-full max-w-full rounded-none border-0 ring-0",
+          "sm:h-[90vh] sm:max-h-[90vh] sm:max-w-6xl sm:rounded-2xl sm:ring-1",
         )}
         showCloseButton
       >
         {file ? (
           <>
-            <DialogHeader className="shrink-0 border-b px-4 py-3 pr-12 pt-[max(0.75rem,env(safe-area-inset-top))]">
-              <DialogTitle className="truncate text-base">
+            <DialogHeader className="shrink-0 border-b bg-background/95 px-3 py-2.5 pr-12 pt-[max(0.625rem,env(safe-area-inset-top))] backdrop-blur sm:px-4 sm:py-3">
+              <DialogTitle className="truncate text-sm sm:text-base">
                 {file.fileName}
               </DialogTitle>
               <DialogDescription className="sr-only">
                 File preview
               </DialogDescription>
+              <p className="truncate text-xs text-muted-foreground" aria-hidden>
+                {formatPascoFileSize(file.fileSize)}
+              </p>
             </DialogHeader>
             <div
-              className="min-h-0 flex-1 bg-muted/30 sm:h-[calc(90vh-3.5rem)]"
+              className="min-h-0 flex-1 bg-background sm:h-[calc(90vh-3.5rem)]"
               onWheel={(event) => event.stopPropagation()}
             >
               {viewKind === "pdf" ? (
@@ -80,7 +86,7 @@ export function PascoFileView({ file, onClose }: PascoFileViewProps) {
                 />
               ) : null}
               {viewKind === "image" ? (
-                <div className="relative h-full p-4">
+                <div className="relative h-full bg-black">
                   <Image
                     src={file.fileUrl}
                     alt={file.fileName}
@@ -92,11 +98,11 @@ export function PascoFileView({ file, onClose }: PascoFileViewProps) {
               ) : null}
             </div>
             {viewKind === "pdf" ? (
-              <DialogFooter className="shrink-0 border-t px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:justify-end">
+              <DialogFooter className="shrink-0 flex-row items-center justify-end border-t bg-background/95 px-3 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] backdrop-blur sm:justify-end sm:px-4 sm:py-3">
                 <Button
                   type="button"
                   variant="outline"
-                  className="min-h-11"
+                  className="min-h-11 w-full sm:w-auto"
                   asChild
                 >
                   <a
