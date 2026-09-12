@@ -30,14 +30,12 @@ function fitActiveDocument(registry: PluginRegistry) {
 
 function scheduleInitialFit(registry: PluginRegistry) {
   requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      fitActiveDocument(registry);
-    });
+    fitActiveDocument(registry);
   });
 
   window.setTimeout(() => {
     fitActiveDocument(registry);
-  }, 150);
+  }, 200);
 }
 
 export function PascoEmbedPdfViewer({ fileUrl }: PascoEmbedPdfViewerProps) {
@@ -55,7 +53,7 @@ export function PascoEmbedPdfViewer({ fileUrl }: PascoEmbedPdfViewerProps) {
 
   return (
     <div
-      className="h-full w-full min-h-0"
+      className="h-full min-h-0 w-full [touch-action:pan-x_pan-y_pinch-zoom]"
       onWheel={(event) => event.stopPropagation()}
     >
       <PDFViewer
